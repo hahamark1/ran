@@ -7,6 +7,7 @@ from torch.autograd import Variable
 
 import data
 import model
+from pathlib import Path
 
 parser = argparse.ArgumentParser(
         description='PyTorch PennTreeBank RNN/LSTM Language Model')
@@ -84,9 +85,13 @@ test_data = batchify(corpus.test, eval_batch_size)
 ###############################################################################
 
 ntokens = len(corpus.dictionary)
-model = model.RNNModel(
-    args.model, ntokens, args.emsize, args.nhid,
-    args.nlayers, args.dropout, args.tied)
+if args.save and Path(args.save).is_file():
+    with open(args.save, 'rb') as f:
+        model = torch.load(f)
+else:
+    model = model.RNNModel(
+        args.model, ntokens, args.emsize, args.nhid,
+        args.nlayers, args.dropout, args.tied)
 print(model)
 if args.cuda:
     model.cuda()
@@ -193,10 +198,12 @@ try:
         else:
             # Anneal the learning rate if no improvement has been seen
             # in the validation dataset.
-            lr /= 4.0
+            lr /= 1.5
 except KeyboardInterrupt:
     print('-' * 89)
     print('Exiting from training early')
+    with open(args.save, 'wb') as f:
+        torch.save(model, f)
 
 # Load the best saved model.
 with open(args.save, 'rb') as f:
